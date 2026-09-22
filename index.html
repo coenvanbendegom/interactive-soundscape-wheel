@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Interactive Soundscape Wheel - Final</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #f8f9fa;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px; 
+    gap: 40px;
+    align-items: center;
+    padding: 30px;
+    box-sizing: border-box;
+  }
+  
+  #wheel-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  svg { 
+    width: 100%;
+    max-width: 1050px;
+    height: auto;
+    max-height: 92vh;
+    overflow: visible; 
+  }
+  
+  svg text { pointer-events: none; fill: #111; }
+
+  /* Interactive wedge styling */
+  .wedge {
+    transition: opacity 0.2s ease, filter 0.2s ease;
+    transform-origin: center center;
+    stroke: #555;
+    stroke-width: 0.5;
+  }
+  .wedge:hover {
+    opacity: 0.85;
+    filter: brightness(1.1);
+    cursor: pointer;
+  }
+
+  /* Interactive Tier 2 styling */
+  .clickable-arc {
+    transition: opacity 0.2s ease, filter 0.2s ease;
+    transform-origin: center center;
+    stroke: #555;
+    stroke-width: 0.75;
+  }
+  .clickable-arc:hover {
+    opacity: 0.85;
+    filter: brightness(1.05);
+    cursor: pointer;
+  }
+
+  /* Interactive Center Button */
+  .center-button {
+    fill: #fdfdfd;
+    stroke: #555;
+    stroke-width: 1;
+    transition: fill 0.2s ease;
+    cursor: pointer;
+  }
+  .center-button:hover {
+    fill: #e9ecef;
+  }
+
+  /* Structural arcs */
+  .structural-arc {
+    stroke: #555;
+    stroke-width: 0.75;
+  }
+
+  /* Right Side Container */
+  #right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 92vh;
+    justify-content: center;
+  }
+
+  /* Right Side Image Box */
+  #panel-image-wrapper {
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    border: 1px solid #ddd;
+    background: #eaeaea;
+    flex-shrink: 0;
+  }
+
+  #panel-image-wrapper img {
+    width: 100%;
+    height: 180px; /* Adjust height as you like (e.g. 150px - 220px) */
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Info box styling */
+  #info-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 22px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+    font-size: 15.5px;
+    line-height: 1.45;
+    overflow-y: auto;
+  }
+  #info-box h3 { margin: 0 0 8px 0; color: #333; font-size: 21px; }
+  #info-box .hierarchy-context { font-size: 12px; color: #666; margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  #info-box p { margin: 0 0 14px 0; color: #444; }
+
+  /* Inline citation styling */
+  .inline-ref {
+    font-size: 13px;
+    color: #666;
+  }
+  
+  /* Credit Attribution Text */
+  .credit-text {
+    font-size: 12px;
+    color: #777;
+    font-style: italic;
+    margin-top: -6px;
+    margin-bottom: 14px;
+  }
+
+  /* Text Links (like Acknowledgements) */
+  .text-link {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 13.5px;
+    color: #0056b3;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .text-link:hover {
+    border-bottom: 1px solid #0056b3;
+  }
+  
+  /* Scrollable References Box */
+  .scrollable-references {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #eaeaea;
+    border-radius: 6px;
+    padding: 10px 14px;
+    background: #fdfdfd;
+    margin-bottom: 8px;
+  }
+  .scrollable-references::-webkit-scrollbar { width: 6px; }
+  .scrollable-references::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+  .scrollable-references::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+  .scrollable-references::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+  /* Audio Button Styling */
+  .listen-link { 
+    display: inline-flex; 
+    align-items: center;
+    gap: 8px;
+    color: #0056b3; 
+    font-weight: bold; 
+    background: #eef5ff; 
+    padding: 9px 16px; 
+    border-radius: 6px; 
+    border: 1px solid #d0e3ff; 
+    transition: all 0.2s;
+    cursor: pointer;
+    font-size: 14.5px;
+  }
+  .listen-link:hover { 
+    background: #d0e3ff; 
+    transform: translateY(-1px);
+  }
+  .listen-link.playing {
+    background: #e6f4ea;
+    color: #137333;
+    border-color: #ceead6;
+  }
+
+  /* Enlarged Text styling */
+  .wedge-label { font-size: 14.5px; font-weight: 500; }
+  .tier2-label { font-size: 18px; font-weight: 600; }
+  .tier1-label { font-size: 22px; font-weight: 700; }
+
+</style>
+</head>
+<body>
+
+<div id="wheel-wrapper">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="-520 -520 1040 1040" aria-label="Hierarchical Soundscape Wheel">
+    <defs id="defs"></defs>
+    <g id="wheel-group"></g>
+  </svg>
+</div>
+
+<!-- Right Panel containing both Image and Info Box -->
+<div id="right-panel">
+  <div id="panel-image-wrapper">
+    <!-- Replace 'femundsmarka.jpg' with your image path (e.g., 'images/femundsmarka.jpg') -->
+    <img src="femundsmarka.jpg" alt="Femundsmarka National Park Landscape" onerror="this.style.display='none'" />
+  </div>
+
+  <div id="info-box">
+    <div class="hierarchy-context">INTERACTIVE GUIDE</div>
+    <h3>Soundscape Wheel</h3>
+    <p>Soundscape Wheel for Femundmarka National Park. <p>Select any category or wedge on the left to view its description, key references, and audio samples (where applicable).</p>
+    <a href="#" class="text-link" onclick="event.preventDefault(); showAcknowledgements();">View Acknowledgements & References</a>
+    
+    <p style="font-size: 12.5px; margin-top: 18px; color: #666; font-style: italic; border-top: 1px solid #eee; padding-top: 12px; margin-bottom: 0;">
+      💡 Tip: Click the center hole of the wheel at any time to return to this home screen.
+    </p>
+  </div>
+</div>
+
+<script>
+const wheelGroup = document.getElementById('wheel-group');
+const defs = document.getElementById('defs');
+const infoBox = document.getElementById('info-box');
+const center = { x: 0, y: 0 };
+
+const audioPlayer = new Audio();
+const defaultInfoHTML = infoBox.innerHTML;
+
+const R_HOLE = 70;       
+const R_TIER3 = 310;     
+const R_TIER2 = 400;     
+const R_TIER1 = 490;     
+
+/* Hierarchical Data Structure */
+const wheelData = [
+  {
+    name: "Sound production",
+    tier2: [
+      { name: "Anthrophony", color: "#eef7d8", wedges: ["Socio-cultural expression", "Technophony"] },
+      { name: "Biophony", color: "#bce48c", wedges: ["Physiological", "Movement", "Acoustic signaling"] },
+      { name: "Geophony", color: "#a5d6a7", wedges: ["Weather", "Geo-physical processes"] }
+    ]
+  },
+  {
+    name: "Sound properties and propagation",
+    tier2: [
+      { name: "Soundwave properties", color: "#b3e5fc", wedges: ["Frequency", "Amplitude", "Duration", "Other properties"] },
+      { name: "Spatial aspects", color: "#e1f5fe", wedges: ["Landscape type", "Landscape materiality", "Atmospheric conditions"] },
+      { name: "Temporal aspects", color: "#d1c4e9", wedges: ["Cycles", "Rhythms"] }
+    ]
+  },
+  {
+    name: "Sound perception and response",
+    tier2: [
+      { name: "Other than human", color: "#f8bbd0", wedges: ["Environmental information", "Intra & interspecies comm.", "Other perceptual effects"] },
+      { name: "Culture & Heritage", color: "#ffcdd2", wedges: ["Soundmarks", "Associations"] },
+      { name: "Human", color: "#ffe0b2", wedges: ["Phenomenological", "Psychological effects", "Physiological effects"] }
+    ]
+  }
+];
+
+	// --- 2nd TIER CATEGORY CONTENT HERE --- \\ 
+
+const tier2Content = {
+  "Anthrophony": "Sounds that are mainly produced by human activity, including both socio-cultural expression and technological/industrial noise <span class=\"inline-ref\">(Ebner et al., 2025; Farina et al., 2021; Francis et al., 2017; Pijanowski, Villanueva-Rivera et al., 2011).</span>",
+  "Biophony": "Sounds that are produced by living entities in a place at a certain time. <span class=\"inline-ref\">(Ebner et al., 2025; Francis et al., 2017; Krause, 1998; Pijanowski, 2024; Pijanowski, Farina et al., 2011).</span>",
+  "Geophony": "Non-biological sounds produced by Earth processes and the weather <span class=\"inline-ref\">(Krause, 2012; Pijanowski, 2024; Pijanowski, Farina et al., 2011).</span>",
+  "Soundwave properties": "The fundamental physical and acoustic characteristics of sound waves, such as frequency and amplitude <span class=\"inline-ref\">(Casati & Dokic, 2010; Pijanowski, 2024; Schafer, 1994; Stebbins, 1983).</span>",
+  "Spatial aspects": "How the physical environment, landscape structure, and atmosphere shape the propagation of sound <span class=\"inline-ref\">(Pijanowski, 2024; Farina & Pieretti, 2013).</span>",
+  "Temporal aspects": "The patterns, rhythms, and cyclic nature of soundscapes over time <span class=\"inline-ref\">(Ebner et al, 2025; Pijanowski, 2024).</span>",
+  "Other than human": "We define ‘other than human’ as living beings that are not considered human. <br><br>Other than humans produce socio-cultural expressions through sound, and perceptual and behavioural responses occur across species <span class=\"inline-ref\">(Tsing, 2013; Schuppli et al., 2024).",
+  "Culture & Heritage": "The cultural significance, historical memory, and community associations linked to specific soundscapes.<br><br>Soundscapes hold within them sonorous layers that have connotations for both human and other than human cultures. Sounds are important in culture because they carry emotions, evoke cultural memories and identity <span class=\"inline-ref\">(Yelmi, 2016).",
+  "Human": "The physiological, psychological, and phenomenological responses and experiences of humans to sound. <br> <br>The soundscape that we perceive daily is more than just a representative sonograph - it frames and accompanies lives and holds memories and emotions <span class=\"inline-ref\">(Geniut et al., 2023)."
+};
+
+
+		// --- EDIT CONTENT. WEDGE CONTENT HERE: text, audio files ".mp3" or ".wav", and credit --- \\ 
+
+const wedgeContent = {
+ // --- SOUND PRODUCTION WEDGES (Audio Enabled) ---
+  "Socio-cultural expression": { text: "Sounds expressing social or cultural values such as music and speech.", audio: "audio/anthrophony-sociocultural.mp3", credit: "Cabin door opening. Cabin culture is an important part of the Norwegian 'friluftsliv'(outdoor life). Audio provided by Noelien Wilsnach and recorded in Femundsmarka National Park" },
+  "Technophony": { text: "Machine-generated sounds, sounds of economic production and industry.", audio: "audio/anthrophony-technophony.mp3", credit: "Sound of the Fæmund II boat. Audio provided by Noelien Wilsnach and recorded in Femundsmarka National Park" },
+  "Physiological": { text: "Bodily sounds such as eating, breathing or the sound of a heartbeat.", audio: "audio/biophony-physiological.mp3", credit: "Reindeer eating. Audio provided by Noelien Wilsnach and recorded in Femundsmarka National Park" },
+  "Movement": { text: "Sounds created while physically moving or travelling through an area such as footsteps or wingbeats.", audio: "audio/biophony-movement.mp3", credit: "Footsteps on snow. Audio provided by Noelien Wilsnach and recorded in Femundsmarka National Park" },
+  "Acoustic signaling": { text: "Functional communicative acoustic signals between animals.", audio: "audio/biophony-acousticsignaling.mp3", credit: "Birdsong, dawn chorus. Audio provided by Noelien Wilsnach and recorded in Femundsmarka National Park" },
+  "Weather": { text: "Meteorological occurrences like wind, storms, rain, thunder and other weather sounds.", audio: "audio/geophony-weather.mp3", credit: "Sound of branches moving against each other because of the wind. Audio provided by Noelien Wilsnach and recorded in Femundsmarka National Park" },
+  "Geo-physical processes": { text: "Sounds of processes which include all earth-systems such as hydrological systems, earthquakes, landslides, avalanches, volcanic eruptions, glacier collapse and singing sand dunes.", audio: "audio/geophony-geophysical.mp3", credit: "Rushing river. Audio provided by Noelien Wilsnach and recorded in Femundsmarka National Park" },
+ 
+
+  // --- ALL OTHER WEDGES (No Audio) ---
+ "Frequency": { text: "Frequency (measured in cycles per second or Hz), also referred to as pitch, is defined as the amount of sound waves(cycles) that pass a given point within a certain amount of time <span class=\"inline-ref\">(Svantek, 2025; Casati & Dokic, 2010; Stebbins, 1983).</span>", audio: "", credit: "" },
+  "Amplitude": { text: "Amplitude is measured in pascals (Pa), and relates to “loudness,” intensity or sound pressure level (SPL) and refers to the distance between the valley and the peak in a sonic wave form <span class=\"inline-ref\">(Pijanowski, 2024; Svantek, 2025; Casati & Dokic, 2010; Schafer, 1994)</span>.", audio: "", credit: "" },
+  "Duration": { text: "Wave duration or period, measured in (mili)seconds, refers to the amount of time that it takes to compete a single wave or cycle, therefore the distance between a point on a wave and the next corresponding point <span class=\"inline-ref\">(Pijanowski, 2024; Schafer, 1994; Svantek, 2025)</span>.", audio: "", credit: "" },
+  "Other properties": { text: "Additional acoustic characteristics like timbre, complexity, and resonance.", audio: "", credit: "" },
+  "Landscape type": { text: "Landscape type refers to different types of (outdoor) soundscapes which contain varied aspects that define their sonic identity or soundscape character (e.g. urban, marine, natural, rural, agricultural soundscapes).", audio: "", credit: "" },
+  "Landscape materiality": { text: "Landscape characteristics such as topography and vegetation affect the sonic environment <span class=\"inline-ref\">(Farina & Pieretti, 2013).</span>", audio: "", credit: "" },
+  "Atmospheric conditions": { text: "Atmospheric conditions (air and climate) alter the soundscape, e.g. humid and arid climates attenuate sound differently <span class=\"inline-ref\">(Pijanowski, 2024).</span>", audio: "", credit: "" },
+  "Cycles": { text: "Frequent cyclical patterns, such as those related to the diel (24-hr), lunar, and seasonal cycles <span class=\"inline-ref\">(Pijanowski, 2024 & Ebner et al, 2025).</span>", audio: "", credit: "" },
+  "Rhythms": { text: "Rhythms are infrequent, sporadic or singular sound events that come to characterize a soundscape in multiple ways.", audio: "", credit: "" },
+  "Environmental information": { text: "Other than humans listen to the soundscape to gather environmental information which affects how they communicate, forage, reproduce, navigate and avoid predators <span class=\"inline-ref\">(Farina & Reid, 2020).</span>", audio: "", credit: "" },
+  "Intra & interspecies comm.": { text: "Acoustic signaling occurring within or between other than human species <span class=\"inline-ref\">(Phillips et al., 2021)</span>.", audio: "", credit: "" },
+  "Other perceptual effects": { text: "Here we recognize that there is still much to explore about the sound perception of other than humans.", audio: "", credit: "" },
+  "Phenomenological": { text: "Contextual factors such as memory, values, social/power relations, and narratives to a great degree determine individual soundscape perception <span class=\"inline-ref\">(ISO, 2014)</span>.", audio: "", credit: "" },
+  "Psychological effects": { text: "Psychoacoustics refers to the individual psychological factors that are activated when a (human) perceiver receives soundwaves, translates them through a filter of values, norms and expectations and interprets the sound <span class=\"inline-ref\">(Geniut et al., 2023)</span>.", audio: "", credit: "" },
+  "Physiological effects": { text: "The bodily responses to sound for example quiet settings have been shown to improve human health, support species’ functioning and allow for more diverse soundscape experiences <span class=\"inline-ref\">(Pijanowski et al., 2011b, Christou et al., 2021 & Francis et al., 2017).</span>", audio: "", credit: "" },
+  "Soundmarks": { text: "Soundmarks are sounds which have unique features giving it value and meaning as natural or cultural heritage that deserves to be protected <span class=\"inline-ref\">(Schafer, 1994; Pijanowski, 2024).</span>", audio: "", credit: "" },
+  "Associations": { text: "Elicited emotional response from heritage acoustic experiences <span class=\"inline-ref\">(Yelmi, 2016).</span>", audio: "", credit: "" }
+};
+
+function polarToCartesian(cx, cy, radius, angleDeg) {
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + radius * Math.cos(rad), y: cy + radius * Math.sin(rad) };
+}
+
+function describeArcPath(cx, cy, rInner, rOuter, startAngle, endAngle) {
+  const p1 = polarToCartesian(cx, cy, rOuter, startAngle);
+  const p2 = polarToCartesian(cx, cy, rOuter, endAngle);
+  const p3 = polarToCartesian(cx, cy, rInner, endAngle);
+  const p4 = polarToCartesian(cx, cy, rInner, startAngle);
+  const largeArc = (endAngle - startAngle) <= 180 ? 0 : 1;
+  return `M ${p1.x},${p1.y} A ${rOuter},${rOuter} 0 ${largeArc} 1 ${p2.x},${p2.y} L ${p3.x},${p3.y} A ${rInner},${rInner} 0 ${largeArc} 0 ${p4.x},${p4.y} Z`;
+}
+
+function createTextPathDef(id, radius, startAngle, endAngle) {
+  const midAngle = startAngle + (endAngle - startAngle) / 2;
+  let pA = polarToCartesian(center.x, center.y, radius, startAngle);
+  let pB = polarToCartesian(center.x, center.y, radius, endAngle);
+  const largeArc = (endAngle - startAngle) <= 180 ? 0 : 1;
+  
+  let sweepFlag = 1; let startPt = pA; let endPt = pB;
+  let normalizedMid = midAngle % 360;
+  if (normalizedMid < 0) normalizedMid += 360;
+  
+  if (normalizedMid > 90 && normalizedMid < 270) { 
+      sweepFlag = 0; startPt = pB; endPt = pA; 
+  }
+  
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("id", id);
+  path.setAttribute("d", `M ${startPt.x},${startPt.y} A ${radius},${radius} 0 ${largeArc} ${sweepFlag} ${endPt.x},${endPt.y}`);
+  defs.appendChild(path);
+}
+
+window.toggleAudio = function(fileSrc, buttonElement) {
+  if (audioPlayer.src.includes(fileSrc) && !audioPlayer.paused) {
+    audioPlayer.pause();
+    buttonElement.innerHTML = '▶ Play Sound Clip';
+    buttonElement.classList.remove('playing');
+    return;
+  }
+  audioPlayer.src = fileSrc;
+  audioPlayer.play().then(() => {
+    buttonElement.innerHTML = '⏸ Pause Sound Clip';
+    buttonElement.classList.add('playing');
+  }).catch((error) => {
+    alert(`Could not play audio. Make sure you have created the 'audio' folder and placed '${fileSrc.split('/').pop()}' inside it!`);
+  });
+
+  audioPlayer.onended = () => {
+    buttonElement.innerHTML = '▶ Play Sound Clip';
+    buttonElement.classList.remove('playing');
+  };
+};
+
+function updateWedgeBox(tier1, tier2, wedgeName) {
+  audioPlayer.pause(); 
+  
+  const content = wedgeContent[wedgeName] || { text: "Description pending.", audio: "", credit: "" };
+  const displayTitle = wedgeName === "Intra & interspecies comm." ? "Intra & interspecies communication" : wedgeName;
+  
+  let creditHtml = '';
+  let audioHtml = '';
+  
+  if (content.credit) {
+    creditHtml = `<div class="credit-text">${content.credit}</div>`;
+  }
+  if (content.audio) {
+    audioHtml = `<button class="listen-link" onclick="toggleAudio('${content.audio}', this)">▶ Play Sound Clip</button>`;
+  }
+
+  infoBox.innerHTML = `
+    <div class="hierarchy-context">${tier1} › ${tier2}</div>
+    <h3>${displayTitle}</h3>
+    <p>${content.text}</p>
+    ${creditHtml}
+    ${audioHtml}
+  `;
+}
+
+function updateTier2Box(tier1, tier2Name) {
+  audioPlayer.pause(); 
+  const description = tier2Content[tier2Name] || "Description pending.";
+  infoBox.innerHTML = `
+    <div class="hierarchy-context">${tier1}</div>
+    <h3>${tier2Name}</h3>
+    <p>${description}</p>
+  `;
+}
+
+function showAcknowledgements() {
+  audioPlayer.pause();
+  infoBox.innerHTML = `
+    <div class="hierarchy-context">ABOUT</div>
+    <h3>Acknowledgements & References</h3>
+    <p>This interactive Soundscape Wheel was developed by Coen van Bendegom and Noelien Wilsnach with support from Rose Keller, Usue Ruiz Arana, Gunnar Cerwén, Thomas Luypaert, John Martin, and Yue Hu, and the Nordic Soundscape Research Network.<p>
+    
+    <p style="margin-bottom: 8px;"><strong>(Suggested) Literature:</strong></p>
+    <div class="scrollable-references">
+      <ul style="font-size: 13px; padding-left: 20px; color: #444; margin: 0;">
+        <li style="margin-bottom: 8px;">Casati, R., & Dokic, J. (2010). Sounds (Stanford Encyclopedia of Philosophy). Stanford.edu. https://plato.stanford.edu/entries/sounds/</li>
+        <li style="margin-bottom: 8px;">Christou, P., Hadjielias, E., & Farmaki, A. (2021). Silence, sounds and the well-being of tourism entrepreneurs in noisy tourism workplaces. Current Issues in Tourism, 24(18), 2658-2670.</li>
+        <li style="margin-bottom: 8px;">Ebner, M., Tappeiner, U., & Uta Schirpke. (2025). From valleys to peaks: characterizing soundscapes in the Northern European Limestone Alps. Landscape Ecology, 40(5). https://doi.org/10.1007/s10980-025-02112-1</li>
+	<li style="margin-bottom: 8px;">Farina, A., & Pieretti, N. (2014). Sonic environment and vegetation structure: A methodological approach for a soundscape analysis of a Mediterranean maqui. Ecological Informatics, 21, 120–132. https://doi.org/10.1016/j.ecoinf.2013.10.008</li>
+	<li style="margin-bottom: 8px;">Farina, A., & Reid, V. (2020). The ecological role of sound in terrestrial and aquatic landscape: theories, methods and applications of ecoacoustics. Biodiversity, 21(1), 1–3. https://doi.org/10.1080/14888386.2020.1753575</li>
+        <li style="margin-bottom: 8px;">Farina, A., Mullet, T. C., Bazarbayeva, T. A., Tazhibayeva, T., Bulatova, D., & Li, P. (2021). Perspectives on the Ecological Role of Geophysical Sounds. Frontiers in Ecology and Evolution, 9. https://doi.org/10.3389/fevo.2021.748398</li>
+        <li style="margin-bottom: 8px;">Francis, C. D., Newman, P., Taff, B. D., White, C., Monz, C. A., Levenhagen, M., Petrelli, A. R., Abbott, L. C., Newton, J., Burson, S., Cooper, C. B., Fristrup, K. M., McClure, C. J. W., Mennitt, D., Giamellaro, M., & Barber, J. R. (2017). Acoustic environments matter: Synergistic benefits to humans and ecological communities. Journal of Environmental Management, 203(Part 1), 245–254. https://doi.org/10.1016/j.jenvman.2017.07.041</li>
+        <li style="margin-bottom: 8px;">Genuit, K., Schulte-Fortkamp, B., & Fiebig, A. (2023). Psychoacoustics in soundscape research. In Soundscapes: Humans and their acoustic environment (pp. 157-184). Cham: Springer International Publishing.</li>
+        <li style="margin-bottom: 8px;">International Organization for Standardization. (2014). ISO 12913–1:2014 Acoustics — Soundscape — Part 1: Definition and conceptual framework ISO, Geneva.</li>
+	<li style="margin-bottom: 8px;">Krause, B. (2012). The Great Animal Orchestra. Little, Brown.</li>
+	<li style="margin-bottom: 8px;">Phillips, J. N., Termondt, S. E., & Francis, C. D. (2021). Long-term noise pollution affects seedling recruitment and community composition, with negative effects persisting after removal. Proceedings of the Royal Society B, 288(1948), 20202906.</li>
+	<li style="margin-bottom: 8px;">Pijanowski, B. C. (2024). Principles of Soundscape Ecology. University of Chicago Press.</li>
+	<li style="margin-bottom: 8px;">Pijanowski, B. C., Villanueva-Rivera, L. J., Dumyahn, S. L., Farina, A., Krause, B. L., Napoletano, B. M., ... & Pieretti, N. (2011a). Soundscape ecology: the science of sound in the landscape. BioScience, 61(3), 203-216. https://doi.org/10.1525/bio.2011.61.3.6 </li>
+	<li style="margin-bottom: 8px;">Pijanowski, B. C., Farina, A., Gage, S. H., Dumyahn, S. L., & Krause, B. L. (2011b). What is soundscape ecology? An introduction and overview of an emerging new science. Landscape Ecology, 26(9), 1213–1232. https://doi.org/10.1007/s10980-011-9600-8</li>
+	<li style="margin-bottom: 8px;">Schafer, R. M. (1994 [1977]). The soundscape: the tuning of the world. Destiny Books. Rochester, Vermont.</li>
+	<li style="margin-bottom: 8px;">Schuppli, C., & Lokuciejewski, E. (2024). What Constitutes Non-Human Culture and How Is It Studied? In J. J. Tehrani, J. Kendal, & R. L. Kendal (Eds.), The Oxford Handbook of Cultural Evolution. Oxford University Press.</li>
+	<li style="margin-bottom: 8px;">Stebbins, W. C. (1983). The acoustic sense of animals. Harvard University Press.</li>
+	<li style="margin-bottom: 8px;">Tsing, A. (2013). More-than-Human Sociality A Call for Critical Description. In Anthropology and Nature (pp. 27–42). Routledge.</li>
+	<li style="margin-bottom: 8px;">Yelmi, P., Kuşcu, H., & Yantaç, A. E. (2016). Towards a Sustainable Crowdsourced Sound Heritage Archive by Public Participation. Proceedings of the 9th Nordic Conference on Human-Computer Interaction, 1–9. https://doi.org/10.1145/2971485.2971492</li>
+      </ul>
+    </div>
+  `;
+}
+
+function resetInfoBox() {
+  audioPlayer.pause();
+  infoBox.innerHTML = defaultInfoHTML;
+}
+
+try {
+  const totalWedges = 24; 
+  const degreesPerWedge = 360 / totalWedges;
+  let currentAngle = 0;
+  let t1IdCounter = 0;
+  let t2IdCounter = 0;
+
+  wheelData.forEach(tier1 => {
+    const t1StartAngle = currentAngle;
+    
+    tier1.tier2.forEach(tier2 => {
+      const t2StartAngle = currentAngle;
+
+      tier2.wedges.forEach(wedgeName => {
+        const wedgeStart = currentAngle;
+        const wedgeEnd = currentAngle + degreesPerWedge;
+        const wedgeMid = wedgeStart + degreesPerWedge / 2;
+
+        const wedgeEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        wedgeEl.setAttribute("d", describeArcPath(center.x, center.y, R_HOLE, R_TIER3, wedgeStart, wedgeEnd));
+        wedgeEl.setAttribute("fill", tier2.color);
+        wedgeEl.setAttribute("class", "wedge");
+        wedgeEl.addEventListener("click", () => updateWedgeBox(tier1.name, tier2.name, wedgeName));
+        wheelGroup.appendChild(wedgeEl);
+
+        const textEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textEl.setAttribute("class", "wedge-label");
+        textEl.textContent = wedgeName;
+
+        let normMid = wedgeMid % 360;
+        if (normMid < 0) normMid += 360;
+
+        const textPadding = 20;
+        if (normMid > 180 && normMid < 360) {
+          const pos = polarToCartesian(center.x, center.y, R_HOLE + textPadding, normMid);
+          textEl.setAttribute("x", pos.x); textEl.setAttribute("y", pos.y);
+          textEl.setAttribute("text-anchor", "end");
+          textEl.setAttribute("transform", `rotate(${normMid + 90} ${pos.x} ${pos.y})`);
+          textEl.setAttribute("dominant-baseline", "middle");
+        } else {
+          const pos = polarToCartesian(center.x, center.y, R_HOLE + textPadding, normMid);
+          textEl.setAttribute("x", pos.x); textEl.setAttribute("y", pos.y);
+          textEl.setAttribute("text-anchor", "start");
+          textEl.setAttribute("transform", `rotate(${normMid - 90} ${pos.x} ${pos.y})`);
+          textEl.setAttribute("dominant-baseline", "middle");
+        }
+        wheelGroup.appendChild(textEl);
+
+        currentAngle += degreesPerWedge;
+      });
+
+      const t2EndAngle = currentAngle;
+      
+      const t2Arc = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      t2Arc.setAttribute("d", describeArcPath(center.x, center.y, R_TIER3, R_TIER2, t2StartAngle, t2EndAngle));
+      t2Arc.setAttribute("fill", tier2.color);
+      t2Arc.setAttribute("class", "clickable-arc"); 
+      t2Arc.addEventListener("click", () => updateTier2Box(tier1.name, tier2.name)); 
+      wheelGroup.appendChild(t2Arc);
+
+      const t2Radius = (R_TIER3 + R_TIER2) / 2;
+      const t2PathId = `t2-path-${t2IdCounter++}`;
+      createTextPathDef(t2PathId, t2Radius, t2StartAngle, t2EndAngle);
+      
+      const t2Text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const t2Tp = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+      t2Tp.setAttribute("href", `#${t2PathId}`); 
+      t2Tp.setAttribute("startOffset", "50%");
+      t2Tp.setAttribute("text-anchor", "middle"); 
+      t2Tp.setAttribute("class", "tier2-label");
+      t2Tp.setAttribute("dominant-baseline", "central");
+      t2Tp.textContent = tier2.name;
+      t2Text.appendChild(t2Tp); wheelGroup.appendChild(t2Text);
+    });
+
+    const t1EndAngle = currentAngle;
+
+    const t1Arc = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    t1Arc.setAttribute("d", describeArcPath(center.x, center.y, R_TIER2, R_TIER1, t1StartAngle, t1EndAngle));
+    t1Arc.setAttribute("fill", "#ffffff"); 
+    t1Arc.setAttribute("class", "structural-arc");
+    wheelGroup.appendChild(t1Arc);
+
+    const t1Radius = (R_TIER2 + R_TIER1) / 2;
+    const t1PathId = `t1-path-${t1IdCounter++}`;
+    createTextPathDef(t1PathId, t1Radius, t1StartAngle, t1EndAngle);
+    
+    const t1Text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    const t1Tp = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+    t1Tp.setAttribute("href", `#${t1PathId}`); 
+    t1Tp.setAttribute("startOffset", "50%");
+    t1Tp.setAttribute("text-anchor", "middle"); 
+    t1Tp.setAttribute("class", "tier1-label");
+    t1Tp.setAttribute("dominant-baseline", "central");
+    t1Tp.textContent = tier1.name;
+    t1Text.appendChild(t1Tp); wheelGroup.appendChild(t1Text);
+  });
+
+  const centerHole = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  centerHole.setAttribute("cx", 0); centerHole.setAttribute("cy", 0); centerHole.setAttribute("r", R_HOLE);
+  centerHole.setAttribute("class", "center-button");
+  centerHole.addEventListener("click", resetInfoBox);
+  wheelGroup.appendChild(centerHole);
+
+} catch (error) {
+  infoBox.innerHTML = `
+    <h3 style="color: #d9534f;">System Check Failed</h3>
+    <p>The browser encountered an error drawing the wheel:</p>
+    <code style="background: #eee; padding: 10px; display: block; font-size: 13px;">${error.message}</code>
+  `;
+  console.error(error);
+}
+
+</script>
+</body>
+</html>
