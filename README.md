@@ -2,7 +2,7 @@ README - Interactive Soundscape Wheel.
 
 The interactive soundscape wheel is part of an academic research effort by members of the Nordic Soundscape Research Network. This network consists of a diverse group of soundscape researches, from eco-acousticians to social scientists. 
 
-Inspired by the landscape character assessment wheel, members of the network lead an effort to create a soundscape wheel which can be used for soundscape character assessment and education on soundscape research. 
+Inspired by the landscape character assessment wheel, members of the network led an effort to create a soundscape wheel which can be used for soundscape character assessment and education on soundscape research. 
 
 The resulting paper on the soundscape wheel is accepted for publication in Tourism Geographies (insert reference). Additionally, two of the co-authors of the paper have continued to develop the soundscape wheel into an interactive tool. Based on the manuscript, this tool provides brief explanations and key references to each of the wedges of the soundscape wheel. The soundscape wheel is applied to Femundsmarka National Park in Norway and includes sound clips recorded there.
 
